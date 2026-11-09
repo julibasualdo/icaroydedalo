@@ -1,5 +1,5 @@
 // ============================================================================
-// Sketch Principal: El Mito de Ícaro y Dédalo (Apertura de alas optimizada)
+// Sketch Principal: El Mito de Ícaro y Dédalo (Con Destellos Amarillos y Tinte Rojizo)
 // ============================================================================
 
 let video = null;
@@ -97,7 +97,7 @@ function setup() {
   try {
     sndAmbiente = loadSound('1AMBIENTE.mp3');
     sndAleteo   = loadSound('2ALETEO.mp3');
-    sndViento   = loadSound('3VIENTO 4.mp3');
+    sndViento   = loadSound('viento.mp3');
     sndFuego    = loadSound('3FUEGO.mp3');
     sndFuego2   = loadSound('FUEGO2.mp3');
     sndFinal    = loadSound('4FINAL.mp3');
@@ -272,6 +272,8 @@ function draw() {
   drawAtmosphere(elapsed);
   drawAscendingBackgroundClouds(elapsed); 
   drawCenteredSingleCloud(elapsed);
+  drawTopExtraCloud(elapsed); 
+  drawLeftCloud(elapsed);     
 
   if (personajeImg && personajeImg.width > 0 && elapsed > FLIGHT_START && !explosionTriggered) {
     push();
@@ -283,9 +285,9 @@ function draw() {
     if (noFlapTimer > 1800 && elapsed > FLIGHT_START) speedMultLines = 0;
 
     for (let cl of characterAirLines) {
-      cl.y -= (cl.speed * speedMultLines);
-      if (cl.y < -height * 0.12) {
-        cl.y = height * 0.22;
+      cl.y += (cl.speed * speedMultLines); 
+      if (cl.y > height * 0.30) {
+        cl.y = -height * 0.12;
         cl.x = random(-width * 0.18, width * 0.18);
       }
       stroke(255, 255, 255, cl.alpha * 0.85);
@@ -295,6 +297,13 @@ function draw() {
     }
 
     imageMode(CENTER);
+    
+    // ¡Tinte rojizo progresivo en el personaje según el calor/progreso!
+    let charTintR = 255;
+    let charTintG = map(progress, 0.25, 0.85, 255, 140, true);
+    let charTintB = map(progress, 0.25, 0.85, 255, 90, true);
+    tint(charTintR, charTintG, charTintB);
+
     image(personajeImg, charX, charY, min(width * 0.40, 480), min(height * 0.68, 680));
     pop();
   }
@@ -336,26 +345,30 @@ function draw() {
   drawOrganicOrganicRibbons();
 }
 
+// Nubes centrales con destello amarillo previo antes de prenderse fuego
 function drawCenteredSingleCloud(elapsed) {
   let cloudTint;
 
   if (elapsed < FLIGHT_START) {
     cloudTint = color(190, 205, 220);
   } else if (!explosionTriggered) {
-    if (progress < 0.3) {
-      let t = map(progress, 0, 0.3, 0, 1);
+    if (progress < 0.25) {
+      let t = map(progress, 0, 0.25, 0, 1);
       cloudTint = lerpColor(color(220, 235, 255), color(255, 245, 190), t);
-    } else if (progress < 0.6) {
-      let t = map(progress, 0.3, 0.6, 0, 1);
-      cloudTint = lerpColor(color(255, 245, 190), color(255, 170, 100), t);
+    } else if (progress >= 0.25 && progress < 0.32) {
+      // ¡Efectito especial de destello amarillo justo antes de DATE PRISA!
+      let flashYellow = sin(millis() * 0.025) * 40;
+      cloudTint = color(255, 240 + flashYellow, 120);
+    } else if (progress < 0.7) {
+      let t = map(progress, 0.32, 0.7, 0, 1);
+      cloudTint = lerpColor(color(255, 220, 100), color(255, 120, 30), t);
     } else {
-      let t = map(progress, 0.6, 1.0, 0, 1);
-      cloudTint = lerpColor(color(255, 170, 100), color(245, 110, 60), t);
+      let pulse = sin(millis() * 0.015) * 35;
+      cloudTint = color(255 + pulse, 60 + max(pulse, 0), 10);
     }
   } else {
-    let epilogueElapsed = millis() - epilogueStartTime;
-    let tFinal = constrain(epilogueElapsed / 4000, 0, 1);
-    cloudTint = lerpColor(color(245, 110, 60), color(240, 150, 100), tFinal);
+    let pulse = sin(millis() * 0.02) * 40;
+    cloudTint = color(255 + pulse, 40 + max(pulse, 0), 10);
   }
 
   push();
@@ -364,55 +377,62 @@ function drawCenteredSingleCloud(elapsed) {
   let cW = min(width * 0.90, 1250);
   let cH = min(height * 0.58, 560);
 
-  if (elapsed >= 0 && elapsed < FLIGHT_START && random() < 0.12 && floatingLeaves.length < 30) {
-    floatingLeaves.push({
-      x: cx + random(-cW * 0.45, cW * 0.45),
-      y: cy + random(-cH * 0.35, cH * 0.35),
-      vx: random(-3.0, 3.0),
-      vy: random(-4.0, -1.5),
-      rotation: random(TWO_PI),
-      rotSpeed: random(-0.05, 0.05),
-      size: random(35, 65),
-      alpha: 255
-    });
-  }
-
-  strokeWeight(2);
-  let speedMultLines = (!explosionTriggered && progress >= 0.32 && progress < 0.52) ? 3.5 : 1.8;
-  if (noFlapTimer > 1800 && elapsed > FLIGHT_START) speedMultLines = 0;
-
-  for (let lineItem of airLines) {
-    lineItem.y -= (lineItem.speed * speedMultLines);
-    if (lineItem.y < -height * 0.15) {
-      lineItem.y = height * 0.35;
-      lineItem.x = random(-width * 0.3, width * 0.3);
-    }
-    stroke(255, 255, 255, lineItem.alpha * 0.8);
-    let lineTopY = cy + lineItem.y;
-    let lineBotY = lineTopY + lineItem.length;
-    line(cx + lineItem.x, lineTopY, cx + lineItem.x, lineBotY);
-  }
-
   if (nubeImg && nubeImg.width > 0) {
     imageMode(CENTER);
     tint(red(cloudTint), green(cloudTint), blue(cloudTint), 245);
     image(nubeImg, cx, cy, cW, cH);
+  }
+  pop();
+}
+
+function drawTopExtraCloud(elapsed) {
+  let cloudTint;
+  if ((!explosionTriggered && progress >= 0.25) || explosionTriggered) {
+    let pulse = sin(millis() * 0.02) * 30;
+    cloudTint = color(255, 220 + pulse, 100, 220);
+    if (progress >= 0.32 || explosionTriggered) {
+      cloudTint = color(255 + pulse, 90, 15, 220);
+    }
   } else {
-    noStroke();
-    fill(red(cloudTint), green(cloudTint), blue(cloudTint), 210);
-    ellipse(cx, cy, 1000, 360);
+    cloudTint = color(210, 225, 240, 200);
   }
 
-  noStroke();
-  for (let s of cloudSparkles) {
-    s.phase += s.speed;
-    let sparkleAlpha = map(sin(s.phase), -1, 1, 40, 255);
-    let sparkleSize = s.size * map(sin(s.phase), -1, 1, 0.7, 1.4);
-    
-    fill(255, 255, 220, sparkleAlpha);
-    ellipse(cx + s.x, cy + s.y, sparkleSize * 2.5, sparkleSize * 2.5);
-    fill(255, 255, 255, sparkleAlpha * 0.8);
-    ellipse(cx + s.x, cy + s.y, sparkleSize, sparkleSize);
+  push();
+  let cx = width / 2;
+  let cy = height * 0.22; 
+  let cW = min(width * 0.65, 850);
+  let cH = min(height * 0.35, 320);
+
+  if (nubeImg && nubeImg.width > 0) {
+    imageMode(CENTER);
+    tint(red(cloudTint), green(cloudTint), blue(cloudTint), 210);
+    image(nubeImg, cx, cy, cW, cH);
+  }
+  pop();
+}
+
+function drawLeftCloud(elapsed) {
+  let cloudTint;
+  if ((!explosionTriggered && progress >= 0.25) || explosionTriggered) {
+    let pulse = sin(millis() * 0.018 + 1) * 30;
+    cloudTint = color(255, 210 + pulse, 90, 220);
+    if (progress >= 0.32 || explosionTriggered) {
+      cloudTint = color(255 + pulse, 80, 10, 220);
+    }
+  } else {
+    cloudTint = color(200, 215, 230, 200);
+  }
+
+  push();
+  let cx = width * 0.50; 
+  let cy = height * 0.36; 
+  let cW = min(width * 0.50, 650);
+  let cH = min(height * 0.30, 280);
+
+  if (nubeImg && nubeImg.width > 0) {
+    imageMode(CENTER);
+    tint(red(cloudTint), green(cloudTint), blue(cloudTint), 210);
+    image(nubeImg, cx, cy, cW, cH);
   }
   pop();
 }
@@ -449,23 +469,27 @@ function drawAscendingBackgroundClouds(elapsed) {
   if (elapsed < FLIGHT_START) {
     bgCloudTint = color(200, 215, 230);
   } else if (!explosionTriggered) {
-    if (progress < 0.35) {
-      let t = map(progress, 0, 0.35, 0, 1);
+    if (progress < 0.25) {
+      let t = map(progress, 0, 0.25, 0, 1);
       bgCloudTint = lerpColor(color(200, 215, 230), color(255, 230, 170), t);
+    } else if (progress < 0.32) {
+      bgCloudTint = color(255, 240, 140); // Destello amarillo previo
     } else if (progress < 0.70) {
-      let t = map(progress, 0.35, 0.70, 0, 1);
-      bgCloudTint = lerpColor(color(255, 230, 170), color(245, 140, 90), t);
+      let t = map(progress, 0.32, 0.70, 0, 1);
+      bgCloudTint = lerpColor(color(255, 200, 100), color(245, 140, 90), t);
     } else {
       let t = map(progress, 0.70, 1.0, 0, 1);
-      bgCloudTint = lerpColor(color(245, 140, 90), color(220, 60, 30), t);
+      bgCloudTint = lerpColor(color(245, 140, 90), color(230, 40, 10), t);
     }
   } else {
-    bgCloudTint = color(220, 110, 70);
+    bgCloudTint = color(220, 50, 20);
   }
 
   let burnScaleFactor = 1.0;
   if (!explosionTriggered && progress >= 0.68) {
     burnScaleFactor = map(progress, 0.68, 1.0, 1.0, 2.6, true);
+  } else if (explosionTriggered) {
+    burnScaleFactor = 2.6;
   }
 
   let speedMultiplier = 2.2;
@@ -487,23 +511,19 @@ function drawAscendingBackgroundClouds(elapsed) {
   for (let bc of bgClouds) {
     let baseDrift = 1.5 * speedMultiplier;
     let speedBonus = (wingOpenness > 0.15) ? map(wingOpenness, 0.15, 1.0, 1.0, 3.5, true) * speedMultiplier : 0;
-    bc.y -= (bc.speedY * speedMultiplier + baseDrift + speedBonus);
-
-    if (bc.y < -bc.sizeH * burnScaleFactor * sizeMultiplier) {
-      bc.y = height + bc.sizeH * burnScaleFactor * sizeMultiplier;
-      bc.x = random(width * 0.15, width * 0.85);
-    }
+    
+    bc.y += (bc.speedY * speedMultiplier + baseDrift + speedBonus);
 
     let currentW = bc.sizeW * burnScaleFactor * sizeMultiplier;
     let currentH = bc.sizeH * burnScaleFactor * sizeMultiplier;
+    if (bc.y > height + currentH) {
+      bc.y = -currentH;
+      bc.x = random(width * 0.15, width * 0.85);
+    }
 
     if (nubeImg && nubeImg.width > 0) {
       tint(red(bgCloudTint), green(bgCloudTint), blue(bgCloudTint), bc.alpha);
       image(nubeImg, bc.x, bc.y, currentW, currentH);
-    } else {
-      noStroke();
-      fill(red(bgCloudTint), green(bgCloudTint), blue(bgCloudTint), bc.alpha * 0.5);
-      ellipse(bc.x, bc.y, currentW * 0.8, currentH * 0.7);
     }
   }
   pop();
@@ -527,7 +547,6 @@ function drawInteractiveWings(px, py, openness) {
 
   imageMode(CENTER);
 
-  // CORRECCIÓN: Ajustamos el rango para que las alas abiertas respondan de inmediato al empezar a abrir los brazos
   let targetAlphaOpen = map(openness, 0.25, 0.55, 0, 255, true);
   alasAlpha = lerp(alasAlpha, targetAlphaOpen, 0.25); 
 
@@ -550,22 +569,27 @@ function drawInteractiveWings(px, py, openness) {
 function drawInactivityWarning() {
   let elapsed = (millis() - totalPausedDuration) - startTime;
   if (elapsed > FLIGHT_START && !explosionTriggered && noFlapTimer > 1800) {
-    let cloudTextY = height * 0.50;
-    drawWavyBannerBg(width / 2, cloudTextY, min(width * 0.75, 820), 105, 230);
+    let yTop = height * 0.22;
+    let xCenter = width * 0.50;
+    let ySide = height * 0.36;
+    let a = 230;
 
     push();
     textAlign(CENTER, CENTER);
     textFont('Caesar Dressing', 'serif');
-    textSize(min(width * 0.045, 40));
-    fill(180, 20, 10, 255);
-    noStroke();
-    text("¡ESTÁS DETENIDO!", width / 2, cloudTextY - 12);
 
-    textFont('Georgia', 'serif');
-    textSize(min(width * 0.020, 18));
-    textStyle(ITALIC);
-    fill(30, 30, 30, 240);
-    text("¡Aletea para seguir volando!", width / 2, cloudTextY + 18);
+    drawWavyBannerBg(width / 2, yTop, min(width * 0.45, 480), 95, a, color(255, 255, 255));
+    textSize(min(width * 0.048, 44));
+    fill(180, 20, 10, a);
+    noStroke();
+    text("¡ESTÁS", width / 2, yTop - 12);
+    text("DETENIDO!", width / 2, yTop + 18);
+
+    drawWavyBannerBg(xCenter, ySide, min(width * 0.45, 480), 95, a, color(255, 60, 40));
+    textSize(min(width * 0.042, 38));
+    fill(255, 255, 255, a);
+    text("¡ALETEA!", xCenter, ySide);
+
     pop();
   }
 }
@@ -601,10 +625,11 @@ function drawOrganicOrganicRibbons() {
   pop();
 }
 
-function drawWavyBannerBg(xCenter, yCenter, wBox, hBox, alphaVal) {
+function drawWavyBannerBg(xCenter, yCenter, wBox, hBox, alphaVal, customBgColor = null) {
   push();
   noStroke();
-  fill(255, 255, 255, alphaVal * 0.92);
+  let bgColor = customBgColor ? customBgColor : color(255, 255, 255);
+  fill(red(bgColor), green(bgColor), blue(bgColor), alphaVal * 0.92);
 
   let t = millis() * 0.003; 
   let halfH = hBox / 2;
@@ -795,46 +820,25 @@ function drawCinematicPrologue(elapsed) {
     let alphaOut = map(elapsed, STORY_DURATION - 800, STORY_DURATION, 255, 0, true);
     let a = min(alphaIn, alphaOut);
 
-    let cloudTextY = height * 0.50; 
-    let bannerW = min(width * 0.78, 860);
-    drawWavyBannerBg(width / 2, cloudTextY, bannerW, 100, a);
-
     push();
     textAlign(CENTER, CENTER);
-
-    let titleSize = min(width * 0.052, 48); 
     textFont('Caesar Dressing', 'serif');
-    textSize(titleSize);
-    let textW = textWidth("EL MITO DE ÍCARO Y DÉDALO");
-
-    if (leavesImg && leavesImg.width > 0) {
-      let leafH = min(width * 0.18, 180);
-      let leafW = leafH * (leavesImg.width / leavesImg.height);
-
-      drawingContext.globalAlpha = (a / 255) * 0.85;
-      imageMode(CENTER);
-
-      let branchY = cloudTextY;
-      let branchXOffset = (bannerW / 2) + 25;
-
-      push();
-      translate(width / 2 - branchXOffset, branchY);
-      rotate(HALF_PI * 0.95);
-      scale(1, -1);
-      image(leavesImg, 0, 0, leafW, leafH);
-      pop();
-
-      push();
-      translate(width / 2 + branchXOffset, branchY);
-      rotate(-HALF_PI * 0.95);
-      image(leavesImg, 0, 0, leafW, leafH);
-      pop();
-    }
-
-    drawingContext.globalAlpha = 1.0;
     noStroke();
     fill(10, 10, 10, a);
-    text("EL MITO DE ÍCARO Y DÉDALO", width / 2, cloudTextY);
+
+    let yTop = height * 0.22;
+    let xCenter = width * 0.50;
+    let ySide = height * 0.36;
+    let bannerW = min(width * 0.45, 480);
+
+    drawWavyBannerBg(width / 2, yTop, bannerW, 95, a, color(255, 255, 255));
+    textSize(min(width * 0.055, 50));
+    text("EL MITO", width / 2, yTop);
+
+    drawWavyBannerBg(xCenter, ySide, bannerW, 95, a, color(255, 255, 255));
+    textSize(min(width * 0.048, 42));
+    text("DE ICARO Y DEDALO", xCenter, ySide);
+
     pop();
   }
 }
@@ -845,53 +849,53 @@ function drawPromptMessage(elapsed) {
     let alphaOut = map(elapsed, FLIGHT_START - 600, FLIGHT_START, 255, 0, true);
     let a = min(alphaIn, alphaOut);
 
-    let cloudTextY = height * 0.50; 
-    drawWavyBannerBg(width / 2, cloudTextY, min(width * 0.70, 780), 110, a);
-
     push();
     textAlign(CENTER, CENTER);
     textFont('Caesar Dressing', 'serif');
-
-    let promptSize = min(width * 0.048, 44); 
-    textSize(promptSize);
-    fill(10, 10, 10, a); 
     noStroke();
-    text("¡ES HORA DE VOLAR!", width / 2, cloudTextY - 14);
+    fill(10, 10, 10, a);
 
-    textFont('Georgia', 'serif');
-    textSize(min(width * 0.020, 18)); 
-    textStyle(ITALIC);
-    fill(30, 30, 30, a * 0.9);
-    text("Mueve tus brazos para abrir las alas y ascender...", width / 2, cloudTextY + 18);
+    let yTop = height * 0.22;
+    let xCenter = width * 0.50;
+    let ySide = height * 0.36;
+    let bannerW = min(width * 0.45, 480);
+
+    drawWavyBannerBg(width / 2, yTop, bannerW, 95, a, color(255, 255, 255));
+    textSize(min(width * 0.055, 50));
+    text("¡ES HORA", width / 2, yTop);
+
+    drawWavyBannerBg(xCenter, ySide, bannerW, 95, a, color(255, 255, 255));
+    textSize(min(width * 0.045, 40));
+    text("DE VOLAR!", xCenter, ySide);
+
     pop();
   }
 }
 
 function drawWarningBanner() {
-  let cloudTextY = height * 0.50; 
+  let yTop = height * 0.22;
+  let xCenter = width * 0.50;
+  let ySide = height * 0.36;
+  let bannerW = min(width * 0.45, 480);
 
   if (progress >= 0.10 && progress < 0.30) {
     let alphaIn = map(progress, 0.10, 0.15, 0, 255, true);
     let alphaOut = map(progress, 0.25, 0.30, 255, 0, true);
     let a = min(alphaIn, alphaOut);
 
-    drawWavyBannerBg(width / 2, cloudTextY, min(width * 0.78, 880), 110, a);
-
     push();
     textAlign(CENTER, CENTER);
     textFont('Caesar Dressing', 'serif');
-
-    let titleSize = min(width * 0.050, 46); 
-    textSize(titleSize);
-    fill(10, 10, 10, a);
     noStroke();
-    text("¡VUELA MÁS FUERTE!", width / 2, cloudTextY - 14);
+    fill(10, 10, 10, a);
 
-    textFont('Georgia', 'serif');
-    textSize(min(width * 0.020, 18)); 
-    textStyle(ITALIC);
-    fill(30, 30, 30, a * 0.95);
-    text("El cielo se abre y el viento te acompaña...", width / 2, cloudTextY + 18);
+    drawWavyBannerBg(width / 2, yTop, bannerW, 95, a, color(255, 255, 255));
+    textSize(min(width * 0.052, 48));
+    text("¡VUELA", width / 2, yTop);
+
+    drawWavyBannerBg(xCenter, ySide, bannerW, 95, a, color(255, 255, 255));
+    textSize(min(width * 0.045, 40));
+    text("MÁS FUERTE!", xCenter, ySide);
     pop();
   }
 
@@ -900,23 +904,19 @@ function drawWarningBanner() {
     let alphaOut = map(progress, 0.47, 0.52, 255, 0, true);
     let a = min(alphaIn, alphaOut);
 
-    drawWavyBannerBg(width / 2, cloudTextY, min(width * 0.72, 820), 110, a);
-
     push();
     textAlign(CENTER, CENTER);
     textFont('Caesar Dressing', 'serif');
-
-    let titleSize = min(width * 0.048, 42); 
-    textSize(titleSize);
-    fill(10, 10, 10, a); 
     noStroke();
-    text("¡DATE PRISA!", width / 2, cloudTextY - 14);
+    fill(255, 255, 255, a);
 
-    textFont('Georgia', 'serif');
-    textSize(min(width * 0.020, 18)); 
-    textStyle(ITALIC);
-    fill(30, 30, 30, a * 0.95);
-    text("Ícaro está volando muy alto, alcánzalo antes de que sea tarde...", width / 2, cloudTextY + 18);
+    drawWavyBannerBg(width / 2, yTop, bannerW, 95, a, color(220, 40, 30));
+    textSize(min(width * 0.055, 50));
+    text("¡DATE", width / 2, yTop);
+
+    drawWavyBannerBg(xCenter, ySide, bannerW, 95, a, color(220, 40, 30));
+    textSize(min(width * 0.050, 45));
+    text("PRISA!", xCenter, ySide);
     pop();
   }
 
@@ -925,22 +925,19 @@ function drawWarningBanner() {
     let alphaOut = map(progress, 0.67, 0.72, 255, 0, true);
     let a = min(alphaIn, alphaOut);
 
-    drawWavyBannerBg(width / 2, cloudTextY, min(width * 0.75, 850), 110, a);
-
     push();
     textAlign(CENTER, CENTER);
     textFont('Caesar Dressing', 'serif');
-
-    let titleSize = min(width * 0.045, 40); 
-    textSize(titleSize);
-    fill(10, 10, 10, a);
     noStroke();
-    text("¿ESTÁS SEGURO DE SEGUIR ALETEANDO?", width / 2, cloudTextY - 14);
+    fill(255, 255, 255, a);
 
-    textFont('Georgia', 'serif');
-    textSize(min(width * 0.019, 17)); 
-    fill(30, 30, 30, a * 0.95);
-    text("La cera comienza a calentarse bajo la mirada del Sol...", width / 2, cloudTextY + 18);
+    drawWavyBannerBg(width / 2, yTop, bannerW, 95, a, color(220, 40, 30));
+    textSize(min(width * 0.045, 40));
+    text("¿SEGURO", width / 2, yTop);
+
+    drawWavyBannerBg(xCenter, ySide, bannerW, 95, a, color(220, 40, 30));
+    textSize(min(width * 0.042, 38));
+    text("DE SEGUIR ALETEANDO?", xCenter, ySide);
     pop();
   }
 
@@ -949,23 +946,18 @@ function drawWarningBanner() {
     let alphaOut = map(progress, 0.81, 0.86, 255, 0, true);
     let a = min(alphaIn, alphaOut);
 
-    drawWavyBannerBg(width / 2, cloudTextY, min(width * 0.84, 980), 115, a);
-
     push();
     textAlign(CENTER, CENTER);
     textFont('Caesar Dressing', 'serif');
-
-    let titleSize = min(width * 0.048, 44); 
-    textSize(titleSize);
-    fill(10, 10, 10, a);
     noStroke();
-    text("¡LA CERA COMIENZA A DERRETIRSE!", width / 2, cloudTextY - 14);
+    fill(255, 255, 255, a);
 
-    textFont('Georgia', 'serif');
-    textSize(min(width * 0.020, 18)); 
-    textStyle(ITALIC);
-    fill(30, 30, 30, a * 0.98);
-    text("¡Las alas no resistirán tanto calor!", width / 2, cloudTextY + 18);
+    drawWavyBannerBg(width / 2, yTop, bannerW, 95, a, color(220, 40, 30));
+    textSize(min(width * 0.045, 40));
+    text("¡LA CERA", width / 2, yTop);
+
+    drawWavyBannerBg(xCenter, ySide, bannerW, 95, a, color(220, 40, 30));
+    text("SE DERRETE!", xCenter, ySide);
     pop();
   }
 }
@@ -985,15 +977,19 @@ function drawAtmosphere(elapsed) {
     cTop = lerpColor(color(5, 8, 14), color(15, 75, 160), t);
     cBottom = lerpColor(color(12, 18, 28), color(100, 195, 255), t);
   } else if (!explosionTriggered) {
-    if (progress < 0.30) {
-      let t = map(progress, 0, 0.30, 0, 1);
+    if (progress < 0.25) {
+      let t = map(progress, 0, 0.25, 0, 1);
       let waveBlue = sin(millis() * 0.003) * 15;
       cTop = lerpColor(color(15, 75, 160), color(40, 130, 210), t);
       cBottom = lerpColor(color(100, 195 + waveBlue, 255), color(180, 220, 240), t);
+    } else if (progress < 0.32) {
+      // Destello cálido antes de DATE PRISA
+      cTop = color(220, 100, 20);
+      cBottom = color(255, 220, 80);
     } else if (progress < 0.52) {
-      let t = map(progress, 0.30, 0.52, 0, 1);
-      cTop = lerpColor(color(40, 130, 210), color(225, 140, 30), t);
-      cBottom = lerpColor(color(180, 220, 240), color(255, 210, 80), t);
+      let t = map(progress, 0.32, 0.52, 0, 1);
+      cTop = lerpColor(color(220, 100, 20), color(225, 140, 30), t);
+      cBottom = lerpColor(color(255, 220, 80), color(255, 210, 80), t);
     } else if (progress < 0.75) {
       let t = map(progress, 0.52, 0.75, 0, 1);
       cTop = lerpColor(color(225, 140, 30), color(145, 30, 25), t);
@@ -1078,28 +1074,34 @@ function triggerAndDrawExplosion() {
     explosionFlash = lerp(explosionFlash, 0, 0.09);
   }
 
+  let yTop = height * 0.22;
+  let xCenter = width * 0.50;
+  let ySide = height * 0.36;
+  let bannerW = min(width * 0.45, 480);
+
+  // ¡Plumitas decorativas acompañando a los textos del epílogo a los lados!
+  if (epilogueElapsed < 23000) {
+    drawBurningFeatherDecor(width * 0.22, height * 0.65, 1, 200);
+    drawBurningFeatherDecor(width * 0.78, height * 0.65, -1, 200);
+  }
+
   if (epilogueElapsed >= 500 && epilogueElapsed < 8200) {
     let alphaIn = map(epilogueElapsed, 500, 1500, 0, 255, true);
     let alphaOut = map(epilogueElapsed, 7200, 8200, 255, 0, true);
     let a = min(alphaIn, alphaOut);
 
-    let cloudTextY = height * 0.50; 
-    drawWavyBannerBg(width / 2, cloudTextY, min(width * 0.82, 900), 110, a);
-
     push();
     textAlign(CENTER, CENTER);
     textFont('Caesar Dressing', 'serif');
-    let titleSize = min(width * 0.042, 36); 
-    textSize(titleSize);
     noStroke();
-    fill(10, 10, 10, a); 
-    text("EL SOL HA CALCINADO LAS ALAS DE ÍCARO", width / 2, cloudTextY - 12);
+    fill(255, 255, 255, a);
 
-    textFont('Georgia', 'serif');
-    textSize(min(width * 0.018, 16)); 
-    textStyle(ITALIC);
-    fill(30, 30, 30, a * 0.95);
-    text("La cera cedió ante el calor implacable y el joven cayó...", width / 2, cloudTextY + 18);
+    drawWavyBannerBg(width / 2, yTop, bannerW, 95, a, color(220, 40, 30));
+    textSize(min(width * 0.045, 40));
+    text("EL SOL", width / 2, yTop);
+
+    drawWavyBannerBg(xCenter, ySide, bannerW, 95, a, color(220, 40, 30));
+    text("CALCINÓ LAS ALAS", xCenter, ySide);
     pop();
   }
 
@@ -1108,45 +1110,42 @@ function triggerAndDrawExplosion() {
     let aOut = map(epilogueElapsed, 20800, 22000, 255, 0, true);
     let a = min(aIn, aOut);
 
-    let cloudTextY = height * 0.50;
-    drawWavyBannerBg(width / 2, cloudTextY, min(width * 0.85, 940), 100, a);
-
     push();
     textAlign(CENTER, CENTER);
     textFont('Georgia', 'serif');
-    textSize(min(width * 0.032, 28));
     textStyle(ITALIC);
     noStroke();
-    fill(20, 20, 20, a);
-    text("Deja tus alas, es hora de descansar...", width / 2, cloudTextY);
+    fill(255, 255, 255, a);
+
+    drawWavyBannerBg(width / 2, yTop, bannerW, 95, a, color(220, 40, 30));
+    textSize(min(width * 0.035, 30));
+    text("Deja tus alas,", width / 2, yTop);
+
+    drawWavyBannerBg(xCenter, ySide, bannerW, 95, a, color(220, 40, 30));
+    text("es hora de descansar...", xCenter, ySide);
     pop();
   }
 
+  // TÍTULO FINAL INCENDIADO CON SUS PLUMITAS A LOS LADOS
   if (epilogueElapsed >= 26000) {
     let a = map(epilogueElapsed, 26000, 28000, 0, 255, true);
 
+    drawBurningFeatherDecor(width * 0.22, height * 0.65, 1, a);
+    drawBurningFeatherDecor(width * 0.78, height * 0.65, -1, a);
+
     push();
     textAlign(CENTER, CENTER);
-
-    let titleY = height * 0.45; 
-    let titleSize = min(width * 0.08, 76); 
     textFont('Caesar Dressing', 'serif');
-    textSize(titleSize);
-    
-    let titleText = "EL MITO DE ÍCARO Y DÉDALO";
-    let textW = textWidth(titleText);
-
-    let cloudTextY = height * 0.45;
-    drawWavyBannerBg(width / 2, cloudTextY, textW + 120, 120, a);
-
     noStroke();
-    fill(10, 10, 10, a);
-    text(titleText, width / 2, titleY);
+    fill(255, 240, 150, a);
 
-    let featherXOffset = textW * 0.52 + min(width * 0.04, 40);
-    drawBurningFeatherDecor(width / 2 - featherXOffset, titleY - 45, -1, a);
-    drawBurningFeatherDecor(width / 2 + featherXOffset, titleY - 45, 1, a);
+    drawWavyBannerBg(width / 2, yTop, bannerW, 95, a, color(235, 50, 10));
+    textSize(min(width * 0.050, 45));
+    text("EL MITO", width / 2, yTop);
 
+    drawWavyBannerBg(xCenter, ySide, bannerW, 95, a, color(235, 50, 10));
+    textSize(min(width * 0.040, 36));
+    text("DE ÍCARO Y DÉDALO", xCenter, ySide);
     pop();
   }
 }
