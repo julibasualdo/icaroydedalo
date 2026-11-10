@@ -1,5 +1,5 @@
 // ============================================================================
-// Sketch Principal: El Mito de Ícaro y Dédalo (Textos Grandes)
+// Sketch Principal: El Mito de Ícaro y Dédalo (Restaurado sin atajos, novillo chico y caída diagonal)
 // ============================================================================
 
 let video = null;
@@ -13,14 +13,20 @@ let bgClouds = [];
 let cloudSparkles = []; 
 let airLines = [];        
 let characterAirLines = []; 
+let novilloSparkles = []; 
 
-// Variables de imágenes de alas y elementos
+// Variables de imágenes de alas, elementos y novillo
 let featherImg = null;
 let nubeImg = null;     
 let leavesImg = null;
 let personajeImg = null;
 let alasCerradasImg = null; 
 let alasAbiertasImg = null; 
+let icaroCayendoImg = null; 
+let novilloImg = null; 
+
+// Control de inicio y estado
+let gameStarted = false;
 
 // Control de audios
 let sndAmbiente = null;
@@ -84,14 +90,14 @@ function preload() {
   personajeImg    = loadImage('personaje.png');
   alasCerradasImg = loadImage('alascerradas.png');
   alasAbiertasImg = loadImage('alasabiertas.png');
+  icaroCayendoImg = loadImage('icarocae.png');
+  novilloImg      = loadImage('novillo.png'); 
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   pixelDensity(1);
   frameRate(60);
-
-  startTime = millis();
 
   soundFormats('mp3');
   try {
@@ -112,11 +118,21 @@ function setup() {
   thunderNoise.amp(thunderEnv);
   thunderNoise.start();
 
+  for (let i = 0; i < 15; i++) {
+    novilloSparkles.push({
+      angle: random(TWO_PI),
+      distRadius: random(60, 110),
+      size: random(3, 6),
+      speed: random(0.02, 0.05),
+      alphaOffset: random(TWO_PI)
+    });
+  }
+
   for (let i = 0; i < 7; i++) {
     bgClouds.push({
       x: random(width * 0.15, width * 0.85),
       y: random(-100, height + 100),
-      speedY: random(1.8, 3.8),
+      speedY: random(1.5, 3.0),
       sizeW: random(280, 500),
       sizeH: random(100, 180),
       alpha: random(80, 150)
@@ -148,7 +164,7 @@ function setup() {
       x: random(-width * 0.18, width * 0.18),
       y: random(height * 0.05, height * 0.30),
       length: random(20, 50),
-      speed: random(6.0, 11.5),
+      speed: random(4.0, 7.5),
       alpha: random(70, 180)
     });
   }
@@ -168,10 +184,22 @@ function setup() {
 function mousePressed() {
   userStartAudio();
 
-  if (sndAmbiente && sndAmbiente.isLoaded() && !sndAmbiente.isPlaying()) {
-    sndAmbiente.loop();
-    sndAmbiente.setVolume(0.35);
-    playingAmbiente = true;
+  if (!gameStarted) {
+    let novilloX = width / 2;
+    let novilloY = height * 0.52;
+    let d = dist(mouseX, mouseY, novilloX, novilloY);
+    
+    if (d < 100) {
+      gameStarted = true;
+      startTime = millis();
+      
+      if (sndAmbiente && sndAmbiente.isLoaded() && !sndAmbiente.isPlaying()) {
+        sndAmbiente.loop();
+        sndAmbiente.setVolume(0.35);
+        playingAmbiente = true;
+      }
+    }
+    return;
   }
 
   isPaused = !isPaused;
@@ -204,6 +232,11 @@ function resumeCurrentSounds() {
 }
 
 function draw() {
+  if (!gameStarted) {
+    drawStartScreen();
+    return;
+  }
+
   if (isPaused) {
     drawPauseOverlay();
     return;
@@ -269,26 +302,27 @@ function draw() {
     lastAudioUpdate = millis();
   }
 
-  // 1. Fondo y nubes (detrás)
+  // 1. Fondo y nubes
   drawAtmosphere(elapsed);
   drawAscendingBackgroundClouds(elapsed); 
   drawCenteredSingleCloud(elapsed);
   drawTopExtraCloud(elapsed); 
   drawLeftCloud(elapsed);     
 
-  // 2. TEXTOS INICIALES GRANDES SOBRE LAS NUBES
+  // 2. TEXTOS INICIALES DEL MITO
   if (elapsed >= 0 && elapsed < STORY_DURATION) {
-    drawCaesarText("EL MITO", width / 2, height * 0.36, min(width * 0.11, 95), elapsed);
-    drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.49, min(width * 0.085, 74), elapsed);
+    drawCaesarText("EL MITO", width / 2, height * 0.22, min(width * 0.11, 95), elapsed);
+    drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.42, min(width * 0.08, 68), elapsed);
   }
 
   if (personajeImg && personajeImg.width > 0 && elapsed > FLIGHT_START && !explosionTriggered) {
     push();
     let charX = width / 2;
-    let charY = height * 0.90;
+    let charY = height * 0.86;
 
     strokeWeight(2);
-    let speedMultLines = (!explosionTriggered && progress >= 0.32 && progress < 0.52) ? 3.5 : 1.8;
+    let speedMultLines = map(progress, 0, 1, 1.2, 5.0, true);
+    if (!explosionTriggered && progress >= 0.32 && progress < 0.52) speedMultLines = 3.5;
     if (noFlapTimer > 1800 && elapsed > FLIGHT_START) speedMultLines = 0;
 
     for (let cl of characterAirLines) {
@@ -310,7 +344,7 @@ function draw() {
     let charTintB = map(progress, 0.25, 0.85, 255, 90, true);
     tint(charTintR, charTintG, charTintB);
 
-    image(personajeImg, charX, charY, min(width * 0.40, 480), min(height * 0.68, 680));
+    image(personajeImg, charX, charY, min(width * 0.38, 450), min(height * 0.62, 620));
     pop();
   }
 
@@ -328,7 +362,7 @@ function draw() {
   if (elapsed > FLIGHT_START && progress < 0.88) {
     let wingAlpha = map(elapsed, FLIGHT_START, FLIGHT_START + 1200, 0, 255, true);
     if (wingAlpha > 10 && personajeImg && personajeImg.width > 0) {
-      drawInteractiveWings(width / 2, height * 0.90 - 40, visualWingAnim);
+      drawInteractiveWings(width / 2, height * 0.86 - 40, visualWingAnim);
     }
   }
 
@@ -336,13 +370,15 @@ function draw() {
     releaseFastBurnFeathers();
   }
 
-  updateFeathers();
   updateFloatingLeaves();
 
-  // 3. Cintas orgánicas laterales (marcos negros)
-  drawOrganicOrganicRibbons();
+  // 3. Cintas orgánicas laterales y franja negra INFERIOR 100% OPACA (90px)
+  drawSolidBlackRibbonsAndBottomBar();
 
-  // 4. Carteles posteriores grandes
+  // 4. Plumas cayendo
+  updateFeathersOnTop();
+
+  // 5. Carteles posteriores y epílogo
   drawPromptMessage(elapsed);
   drawWarningBanner(); 
   drawInactivityWarning(); 
@@ -352,7 +388,73 @@ function draw() {
   }
 }
 
-// Función para renderizar textos grandes con contorno marcado
+function drawStartScreen() {
+  push();
+  background(10, 15, 25);
+  
+  push();
+  tint(100, 120, 150, 100);
+  imageMode(CENTER);
+  if (nubeImg && nubeImg.width > 0) {
+    image(nubeImg, width / 2, height * 0.4, min(width * 0.8, 1000), min(height * 0.5, 500));
+  }
+  pop();
+
+  drawCaesarText("DALE LAS ÚLTIMAS PUNTADAS", width / 2, height * 0.18, min(width * 0.055, 48), 1000);
+  drawCaesarText("A TUS ALAS PARA COMENZAR", width / 2, height * 0.29, min(width * 0.055, 48), 1000);
+
+  let novilloX = width / 2;
+  let novilloY = height * 0.52;
+  let hover = dist(mouseX, mouseY, novilloX, novilloY) < 100;
+
+  push();
+  noStroke();
+  for (let s of novilloSparkles) {
+    s.angle += s.speed;
+    let sx = novilloX + cos(s.angle) * s.distRadius;
+    let sy = novilloY + sin(s.angle * 1.5) * (s.distRadius * 0.7);
+    let sAlpha = map(sin(millis() * 0.008 + s.alphaOffset), -1, 1, 80, 255);
+    
+    fill(255, 230, 150, sAlpha);
+    ellipse(sx, sy, s.size, s.size);
+    fill(255, 255, 255, sAlpha * 0.8);
+    ellipse(sx, sy, s.size * 0.4, s.size * 1.5);
+    ellipse(sx, sy, s.size * 1.5, s.size * 0.4);
+  }
+  pop();
+
+  push();
+  imageMode(CENTER);
+  translate(novilloX, novilloY);
+  
+  let nWidth = hover ? min(width * 0.17, 200) : min(width * 0.14, 165);
+  let aspect = novilloImg && novilloImg.width > 0 ? (novilloImg.height / novilloImg.width) : 1;
+
+  if (novilloImg && novilloImg.width > 0) {
+    tint(255, 255, 255, 250);
+    image(novilloImg, 0, 0, nWidth, nWidth * aspect);
+  }
+  pop();
+
+  let alphaPulse = map(sin(millis() * 0.006), -1, 1, 150, 255);
+  push();
+  let ctx = drawingContext;
+  ctx.save();
+  let bigTextSize = min(width * 0.045, 42); 
+  ctx.font = "italic " + bigTextSize + "px 'Caesar Dressing', serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  
+  ctx.lineWidth = bigTextSize * 0.12;
+  ctx.strokeStyle = "rgba(10, 10, 10, 0.95)";
+  ctx.strokeText("Presiona el novillo", width / 2, height * 0.78);
+  
+  ctx.fillStyle = `rgba(255, 240, 200, ${alphaPulse / 255})`;
+  ctx.fillText("Presiona el novillo", width / 2, height * 0.78);
+  ctx.restore();
+  pop();
+}
+
 function drawCaesarText(txt, x, y, size, elapsed) {
   let alphaIn = constrain(map(elapsed, 0, 800, 0, 1), 0, 1);
   let alphaOut = constrain(map(elapsed, STORY_DURATION - 800, STORY_DURATION, 1, 0), 0, 1);
@@ -365,12 +467,10 @@ function drawCaesarText(txt, x, y, size, elapsed) {
   ctx.textBaseline = "middle";
   ctx.globalAlpha = finalAlpha;
 
-  // Trazo negro de contorno más grueso para que destaque con el tamaño grande
   ctx.lineWidth = size * 0.14;
   ctx.strokeStyle = "rgba(10, 10, 10, 0.95)";
   ctx.strokeText(txt, x, y);
 
-  // Relleno claro
   ctx.fillStyle = "rgb(255, 245, 220)";
   ctx.fillText(txt, x, y);
   ctx.restore();
@@ -402,7 +502,7 @@ function drawCenteredSingleCloud(elapsed) {
 
   push();
   let cx = width / 2;
-  let cy = height * 0.50; 
+  let cy = height * 0.46; 
   let cW = min(width * 0.90, 1250);
   let cH = min(height * 0.58, 560);
 
@@ -411,6 +511,17 @@ function drawCenteredSingleCloud(elapsed) {
     tint(red(cloudTint), green(cloudTint), blue(cloudTint), 245);
     image(nubeImg, cx, cy, cW, cH);
   }
+
+  if (leavesImg && leavesImg.width > 0) {
+    let leafAlpha = map(elapsed, 0, STORY_DURATION, 200, 0, true);
+    if (elapsed < STORY_DURATION) {
+      tint(255, 255, 255, leafAlpha);
+      imageMode(CENTER);
+      image(leavesImg, cx - cW * 0.38, cy + 20, 70, 70 * (leavesImg.height / leavesImg.width));
+      image(leavesImg, cx + cW * 0.38, cy + 20, 70, 70 * (leavesImg.height / leavesImg.width));
+    }
+  }
+
   pop();
 }
 
@@ -428,7 +539,7 @@ function drawTopExtraCloud(elapsed) {
 
   push();
   let cx = width / 2;
-  let cy = height * 0.22; 
+  let cy = height * 0.18; 
   let cW = min(width * 0.65, 850);
   let cH = min(height * 0.35, 320);
 
@@ -454,7 +565,7 @@ function drawLeftCloud(elapsed) {
 
   push();
   let cx = width * 0.50; 
-  let cy = height * 0.36; 
+  let cy = height * 0.32; 
   let cW = min(width * 0.50, 650);
   let cH = min(height * 0.30, 280);
 
@@ -521,13 +632,13 @@ function drawAscendingBackgroundClouds(elapsed) {
     burnScaleFactor = 2.6;
   }
 
-  let speedMultiplier = 2.2;
+  let speedMultiplier = map(progress, 0, 1, 1.0, 5.5, true);
   let sizeMultiplier = 1.0;
   if (!explosionTriggered && progress >= 0.32 && progress < 0.52) {
-    speedMultiplier = 3.8;
+    speedMultiplier = 4.2;
     sizeMultiplier = 1.4;
   } else if (!explosionTriggered && progress >= 0.54 && progress < 0.72) {
-    speedMultiplier = 4.2;
+    speedMultiplier = 5.0;
     sizeMultiplier = 1.5;
   }
 
@@ -538,8 +649,8 @@ function drawAscendingBackgroundClouds(elapsed) {
   push();
   imageMode(CENTER);
   for (let bc of bgClouds) {
-    let baseDrift = 1.5 * speedMultiplier;
-    let speedBonus = (wingOpenness > 0.15) ? map(wingOpenness, 0.15, 1.0, 1.0, 3.5, true) * speedMultiplier : 0;
+    let baseDrift = 1.2 * speedMultiplier;
+    let speedBonus = (wingOpenness > 0.15) ? map(wingOpenness, 0.15, 1.0, 0.5, 4.0, true) * speedMultiplier : 0;
     
     bc.y += (bc.speedY * speedMultiplier + baseDrift + speedBonus);
 
@@ -565,8 +676,8 @@ function drawInteractiveWings(px, py, openness) {
   drawingContext.imageSmoothingEnabled = true;
   drawingContext.imageSmoothingQuality = 'high';
 
-  let baseW = min(width * 0.62, 750);
-  let currentW = lerp(baseW * 0.78, baseW * 1.22, openness);
+  let baseW = min(width * 0.75, 900);
+  let currentW = lerp(baseW * 0.85, baseW * 1.35, openness);
   let closedH = currentW * (alasCerradasImg.height / alasCerradasImg.width);
   let openH = currentW * (alasAbiertasImg.height / alasAbiertasImg.width);
   let currentH = lerp(closedH, openH, openness);
@@ -598,39 +709,42 @@ function drawInteractiveWings(px, py, openness) {
 function drawInactivityWarning() {
   let elapsed = (millis() - totalPausedDuration) - startTime;
   if (elapsed > FLIGHT_START && !explosionTriggered && noFlapTimer > 1800) {
-    drawCaesarText("¡ESTÁS DETENIDO!", width / 2, height * 0.36, min(width * 0.08, 65), 500);
-    drawCaesarText("¡ALETEA!", width / 2, height * 0.49, min(width * 0.075, 60), 500);
+    drawCaesarText("¡ESTÁS", width / 2, height * 0.16, min(width * 0.08, 65), 500);
+    drawCaesarText("DETENIDO!", width / 2, height * 0.36, min(width * 0.08, 65), 500);
   }
 }
 
-function drawOrganicOrganicRibbons() {
+function drawSolidBlackRibbonsAndBottomBar() {
   push();
   noStroke();
-  fill(0, 0, 0, 220);
+  fill(0, 0, 0);
 
   let t = millis() * 0.0008;
+  let barHeight = 90;
 
   beginShape();
   vertex(0, 0);
   vertex(width * 0.22, 0);
-  for (let y = 0; y <= height; y += 60) {
+  for (let y = 0; y <= height - barHeight; y += 60) {
     let wave1 = sin(y * 0.008 + t) * 35;
     let x = width * 0.12 + wave1;
     vertex(x, y);
   }
-  vertex(0, height);
+  vertex(0, height - barHeight);
   endShape(CLOSE);
 
   beginShape();
   vertex(width, 0);
   vertex(width * 0.78, 0);
-  for (let y = 0; y <= height; y += 60) {
+  for (let y = 0; y <= height - barHeight; y += 60) {
     let wave1 = sin(y * 0.008 - t * 1.2) * 35;
     let x = width * 0.88 - wave1;
     vertex(x, y);
   }
-  vertex(width, height);
+  vertex(width, height - barHeight);
   endShape(CLOSE);
+
+  rect(0, height - barHeight, width, barHeight);
   pop();
 }
 
@@ -778,27 +892,32 @@ function drawPauseOverlay() {
 function drawPromptMessage(elapsed) {
   if (elapsed >= STORY_DURATION && elapsed < FLIGHT_START) {
     let a = constrain(map(elapsed, STORY_DURATION, STORY_DURATION + 600, 0, 1) * map(elapsed, FLIGHT_START - 600, FLIGHT_START, 1, 0), 0, 1);
-    drawCaesarText("¡ES HORA DE VOLAR!", width / 2, height * 0.42, min(width * 0.09, 78), a * 1000);
+    drawCaesarText("ES HORA", width / 2, height * 0.16, min(width * 0.09, 78), a * 1000);
+    drawCaesarText("DE VOLAR!", width / 2, height * 0.36, min(width * 0.09, 78), a * 1000);
   }
 }
 
 function drawWarningBanner() {
   if (progress >= 0.10 && progress < 0.30) {
     let a = constrain(map(progress, 0.10, 0.15, 0, 1) * map(progress, 0.25, 0.30, 1, 0), 0, 1);
-    drawCaesarText("¡VUELA MÁS FUERTE!", width / 2, height * 0.42, min(width * 0.085, 72), a * 1000);
+    drawCaesarText("VUELA MÁS", width / 2, height * 0.14, min(width * 0.085, 72), a * 1000);
+    drawCaesarText("FUERTE!", width / 2, height * 0.34, min(width * 0.085, 72), a * 1000);
   } else if (progress >= 0.32 && progress < 0.52) {
     let a = constrain(map(progress, 0.32, 0.37, 0, 1) * map(progress, 0.47, 0.52, 1, 0), 0, 1);
-    drawCaesarText("¡DATE PRISA!", width / 2, height * 0.42, min(width * 0.09, 78), a * 1000);
+    drawCaesarText("DATE", width / 2, height * 0.16, min(width * 0.09, 78), a * 1000);
+    drawCaesarText("PRISA!", width / 2, height * 0.36, min(width * 0.09, 78), a * 1000);
   } else if (progress >= 0.54 && progress < 0.72) {
     let a = constrain(map(progress, 0.54, 0.59, 0, 1) * map(progress, 0.67, 0.72, 1, 0), 0, 1);
-    drawCaesarText("¿SEGURO DE SEGUIR ALETEANDO?", width / 2, height * 0.42, min(width * 0.065, 54), a * 1000);
+    drawCaesarText("¿SEGURO DE SEGUIR", width / 2, height * 0.26, min(width * 0.065, 54), a * 1000);
+    drawCaesarText("ALETEANDO?", width / 2, height * 0.42, min(width * 0.065, 54), a * 1000);
   } else if (progress >= 0.74 && progress < 0.86) {
     let a = constrain(map(progress, 0.74, 0.79, 0, 1) * map(progress, 0.81, 0.86, 1, 0), 0, 1);
-    drawCaesarText("¡LA CERA SE DERRETE!", width / 2, height * 0.42, min(width * 0.075, 62), a * 1000);
+    drawCaesarText("¡LA CERA SE", width / 2, height * 0.18, min(width * 0.08, 68), a * 1000);
+    drawCaesarText("DERRITE!", width / 2, height * 0.38, min(width * 0.08, 68), a * 1000);
   }
 }
 
-function triggerAndDrawExplosion() {
+function triggerAndDropExplosion() {
   if (!explosionTriggered) {
     explosionTriggered = true;
     explosionFlash = 255;
@@ -823,7 +942,7 @@ function triggerAndDrawExplosion() {
       phase: random(TWO_PI),
       rotation: random(TWO_PI),
       rotationSpeed: random(-0.05, 0.05),
-      size: random(65, 105),
+      size: random(85, 135),
       flipX: random() < 0.5 ? 1 : -1,
       flipY: random() < 0.5 ? 1 : -1,
       alpha: 255,
@@ -839,6 +958,25 @@ function triggerAndDrawExplosion() {
     explosionFlash = lerp(explosionFlash, 0, 0.09);
   }
 
+  // CAÍDA DIAGONAL: De Arriba-Derecha a Abajo-Izquierda
+  if (icaroCayendoImg && icaroCayendoImg.width > 0 && epilogueElapsed < 12000) {
+    push();
+    imageMode(CENTER);
+    
+    let fallX = map(epilogueElapsed, 0, 4500, width * 0.78, width * 0.22, true); 
+    let fallY = map(epilogueElapsed, 0, 4500, height * 0.12, height + 250, true); 
+    let fallRot = map(epilogueElapsed, 0, 4500, 0.2, 1.1, true);
+    
+    translate(fallX, fallY);
+    rotate(fallRot);
+    
+    let icaroAlpha = map(epilogueElapsed, 2800, 4500, 255, 0, true);
+    tint(255, 255, 255, icaroAlpha);
+
+    image(icaroCayendoImg, 0, 0, min(width * 0.35, 420), min(height * 0.58, 580));
+    pop();
+  }
+
   if (epilogueElapsed < 23000) {
     drawBurningFeatherDecor(width * 0.22, height * 0.65, 1, 200);
     drawBurningFeatherDecor(width * 0.78, height * 0.65, -1, 200);
@@ -846,32 +984,29 @@ function triggerAndDrawExplosion() {
 
   if (epilogueElapsed >= 500 && epilogueElapsed < 8200) {
     let a = constrain(map(epilogueElapsed, 500, 1500, 0, 1) * map(epilogueElapsed, 7200, 8200, 1, 0), 0, 1);
-    drawCaesarText("EL SOL CALCINÓ LAS ALAS", width / 2, height * 0.42, min(width * 0.08, 68), a * 1000);
+    
+    drawCaesarText("EL SOL CALCINÓ", width / 2, height * 0.18, min(width * 0.085, 74), a * 1000);
+    drawCaesarText("LAS ALAS DE ÍCARO", width / 2, height * 0.38, min(width * 0.075, 65), a * 1000);
   }
 
   if (epilogueElapsed >= 14000 && epilogueElapsed < 22000) {
     let a = constrain(map(epilogueElapsed, 14000, 15200, 0, 1) * map(epilogueElapsed, 20800, 22000, 1, 0), 0, 1);
-    let ctx = drawingContext;
-    ctx.save();
-    ctx.font = "italic 44px 'Caesar Dressing', serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.globalAlpha = a;
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = "rgb(120, 10, 5)";
-    ctx.strokeText("Deja tus alas, es hora de descansar...", width / 2, height * 0.42);
-    ctx.fillStyle = "rgb(255, 240, 200)";
-    ctx.fillText("Deja tus alas, es hora de descansar...", width / 2, height * 0.42);
-    ctx.restore();
+    
+    drawCaesarText("DEJA TUS ALAS,", width / 2, height * 0.18, min(width * 0.08, 68), a * 1000);
+    drawCaesarText("ES HORA DE DESCANSAR...", width / 2, height * 0.38, min(width * 0.065, 56), a * 1000);
   }
 
   if (epilogueElapsed >= 26000) {
     let a = constrain(map(epilogueElapsed, 26000, 28000, 0, 1), 0, 1);
     drawBurningFeatherDecor(width * 0.22, height * 0.65, 1, a * 255);
     drawBurningFeatherDecor(width * 0.78, height * 0.65, -1, a * 255);
-    drawCaesarText("EL MITO", width / 2, height * 0.36, min(width * 0.11, 95), a * 1000);
-    drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.49, min(width * 0.085, 74), a * 1000);
+    drawCaesarText("EL MITO", width / 2, height * 0.22, min(width * 0.11, 95), a * 1000);
+    drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.42, min(width * 0.08, 68), a * 1000);
   }
+}
+
+function triggerAndDrawExplosion() {
+  triggerAndDropExplosion();
 }
 
 function drawAtmosphere(elapsed) {
@@ -987,7 +1122,7 @@ function releaseFastBurnFeathers() {
       phase: random(TWO_PI),
       rotation: random(TWO_PI),
       rotationSpeed: random(-0.08, 0.08),
-      size: random(65, 110),
+      size: random(85, 135),
       flipX: random() < 0.5 ? 1 : -1,
       flipY: random() < 0.5 ? 1 : -1,
       alpha: 255,
@@ -996,7 +1131,8 @@ function releaseFastBurnFeathers() {
   }
 }
 
-function updateFeathers() {
+function updateFeathersOnTop() {
+  let barHeight = 90;
   for (let i = feathers.length - 1; i >= 0; i--) {
     let f = feathers[i];
 
@@ -1012,8 +1148,13 @@ function updateFeathers() {
 
     drawFallingFeather(f);
 
-    if (f.y > height + 80 || f.alpha <= 0) {
-      feathers.splice(i, 1);
+    if (f.y > height - barHeight || f.alpha <= 0) {
+      f.y = height - barHeight;
+      f.vy = 0;
+      f.vx = 0;
+      f.gravity = 0;
+      f.swayAmp = 0;
+      f.alpha -= 0.5;
     }
   }
 }
