@@ -1,5 +1,5 @@
 // ============================================================================
-// Sketch Principal: El Mito de Ícaro y Dédalo (Título chico y nube central angosta)
+// Sketch Principal: El Mito de Ícaro y Dédalo (Alas aún más chicas)
 // ============================================================================
 
 let video = null;
@@ -118,12 +118,12 @@ function setup() {
   thunderNoise.amp(thunderEnv);
   thunderNoise.start();
 
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 28; i++) {
     novilloSparkles.push({
       angle: random(TWO_PI),
-      distRadius: random(60, 110),
-      size: random(3, 6),
-      speed: random(0.02, 0.05),
+      distRadius: random(50, 150),
+      size: random(3, 7),
+      speed: random(0.015, 0.045),
       alphaOffset: random(TWO_PI)
     });
   }
@@ -186,7 +186,7 @@ function mousePressed() {
 
   if (!gameStarted) {
     let novilloX = width / 2;
-    let novilloY = height * 0.52;
+    let novilloY = height * 0.42;
     let d = dist(mouseX, mouseY, novilloX, novilloY);
     
     if (d < 100) {
@@ -309,7 +309,7 @@ function draw() {
   drawTopExtraCloud(elapsed); 
   drawLeftCloud(elapsed);     
 
-  // 2. TEXTOS INICIALES DEL MITO (Título secundario "DE ÍCARO Y DÉDALO" más chico)
+  // 2. TEXTOS INICIALES DEL MITO
   if (elapsed >= 0 && elapsed < STORY_DURATION) {
     drawCaesarText("EL MITO", width / 2, height * 0.22, min(width * 0.11, 95), elapsed);
     drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.42, min(width * 0.055, 48), elapsed);
@@ -400,11 +400,11 @@ function drawStartScreen() {
   }
   pop();
 
-  drawCaesarText("DALE LAS ÚLTIMAS PUNTADAS", width / 2, height * 0.10, min(width * 0.05, 44), 1000);
-  drawCaesarText("A TUS ALAS PARA COMENZAR", width / 2, height * 0.18, min(width * 0.05, 44), 1000);
+  drawCaesarText("DALE LAS ÚLTIMAS PUNTADAS", width / 2, height * 0.12, min(width * 0.038, 34), 1000);
+  drawCaesarText("A TUS ALAS PARA COMENZAR", width / 2, height * 0.19, min(width * 0.038, 34), 1000);
 
   let novilloX = width / 2;
-  let novilloY = height * 0.52;
+  let novilloY = height * 0.42;
   let hover = dist(mouseX, mouseY, novilloX, novilloY) < 100;
 
   push();
@@ -412,14 +412,14 @@ function drawStartScreen() {
   for (let s of novilloSparkles) {
     s.angle += s.speed;
     let sx = novilloX + cos(s.angle) * s.distRadius;
-    let sy = novilloY + sin(s.angle * 1.5) * (s.distRadius * 0.7);
-    let sAlpha = map(sin(millis() * 0.008 + s.alphaOffset), -1, 1, 80, 255);
+    let sy = novilloY + sin(s.angle * 1.5) * (s.distRadius * 0.75);
+    let sAlpha = map(sin(millis() * 0.01 + s.alphaOffset), -1, 1, 100, 255);
     
-    fill(255, 230, 150, sAlpha);
+    fill(255, 235, 160, sAlpha);
     ellipse(sx, sy, s.size, s.size);
-    fill(255, 255, 255, sAlpha * 0.8);
-    ellipse(sx, sy, s.size * 0.4, s.size * 1.5);
-    ellipse(sx, sy, s.size * 1.5, s.size * 0.4);
+    fill(255, 255, 255, sAlpha * 0.9);
+    ellipse(sx, sy, s.size * 0.4, s.size * 1.6);
+    ellipse(sx, sy, s.size * 1.6, s.size * 0.4);
   }
   pop();
 
@@ -447,10 +447,10 @@ function drawStartScreen() {
   
   ctx.lineWidth = bigTextSize * 0.12;
   ctx.strokeStyle = "rgba(10, 10, 10, 0.95)";
-  ctx.strokeText("Presiona el novillo", width / 2, height * 0.78);
+  ctx.strokeText("Presiona el novillo", width / 2, height * 0.68);
   
   ctx.fillStyle = `rgba(255, 240, 200, ${alphaPulse / 255})`;
-  ctx.fillText("Presiona el novillo", width / 2, height * 0.78);
+  ctx.fillText("Presiona el novillo", width / 2, height * 0.68);
   ctx.restore();
   pop();
 }
@@ -503,7 +503,6 @@ function drawCenteredSingleCloud(elapsed) {
   push();
   let cx = width / 2;
   let cy = height * 0.46; 
-  // NUBE PRINCIPAL FIJA MÁS ANGOSTA (Reducido de 0.90 a 0.65)
   let cW = min(width * 0.65, 900);
   let cH = min(height * 0.58, 560);
 
@@ -677,7 +676,8 @@ function drawInteractiveWings(px, py, openness) {
   drawingContext.imageSmoothingEnabled = true;
   drawingContext.imageSmoothingQuality = 'high';
 
-  let baseW = min(width * 0.55, 680);
+  // ALAS AÚN MÁS CHICAS (Reducido de 0.55 a 0.42)
+  let baseW = min(width * 0.42, 520);
   let currentW = lerp(baseW * 0.85, baseW * 1.35, openness);
   let closedH = currentW * (alasCerradasImg.height / alasCerradasImg.width);
   let openH = currentW * (alasAbiertasImg.height / alasAbiertasImg.width);
