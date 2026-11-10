@@ -1,5 +1,5 @@
 // ============================================================================
-// Sketch Principal: El Mito de Ícaro y Dédalo (Ajustes de posiciones y plumas finales en U invertida)
+// Sketch Principal: El Mito de Ícaro y Dédalo (Cielo más rápido en "Vuela más fuerte")
 // ============================================================================
 
 let video = null;
@@ -186,7 +186,7 @@ function mousePressed() {
 
   if (!gameStarted) {
     let novilloX = width / 2;
-    let novilloY = height * 0.36; // Novillo más arriba
+    let novilloY = height * 0.36; 
     let d = dist(mouseX, mouseY, novilloX, novilloY);
     
     if (d < 100) {
@@ -309,7 +309,7 @@ function draw() {
   drawTopExtraCloud(elapsed); 
   drawLeftCloud(elapsed);     
 
-  // 2. TEXTOS INICIALES DEL MITO (Subido el segundo título)
+  // 2. TEXTOS INICIALES DEL MITO
   if (elapsed >= 0 && elapsed < STORY_DURATION) {
     drawCaesarText("EL MITO", width / 2, height * 0.18, min(width * 0.11, 95), elapsed);
     drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.35, min(width * 0.055, 48), elapsed);
@@ -318,10 +318,14 @@ function draw() {
   if (personajeImg && personajeImg.width > 0 && elapsed > FLIGHT_START && !explosionTriggered) {
     push();
     let charX = width / 2;
-    let charY = height * 0.86;
+    let charY = height * 0.82; 
 
     strokeWeight(2);
     let speedMultLines = map(progress, 0, 1, 1.2, 5.0, true);
+    // Impulso extra de velocidad en las líneas de viento cuando dice "Vuela más fuerte"
+    if (!explosionTriggered && progress >= 0.10 && progress < 0.30) {
+      speedMultLines = 3.8;
+    }
     if (!explosionTriggered && progress >= 0.32 && progress < 0.52) speedMultLines = 3.5;
     if (noFlapTimer > 1800 && elapsed > FLIGHT_START) speedMultLines = 0;
 
@@ -344,7 +348,7 @@ function draw() {
     let charTintB = map(progress, 0.25, 0.85, 255, 90, true);
     tint(charTintR, charTintG, charTintB);
 
-    image(personajeImg, charX, charY, min(width * 0.38, 450), min(height * 0.62, 620));
+    image(personajeImg, charX, charY, min(width * 0.35, 410), min(height * 0.58, 570));
     pop();
   }
 
@@ -362,7 +366,7 @@ function draw() {
   if (elapsed > FLIGHT_START && progress < 0.88) {
     let wingAlpha = map(elapsed, FLIGHT_START, FLIGHT_START + 1200, 0, 255, true);
     if (wingAlpha > 10 && personajeImg && personajeImg.width > 0) {
-      drawInteractiveWings(width / 2, height * 0.86 - 40, visualWingAnim);
+      drawInteractiveWings(width / 2, height * 0.82 - 35, visualWingAnim);
     }
   }
 
@@ -404,7 +408,7 @@ function drawStartScreen() {
   drawCaesarText("A TUS ALAS PARA COMENZAR", width / 2, height * 0.16, min(width * 0.038, 34), 1000);
 
   let novilloX = width / 2;
-  let novilloY = height * 0.36; // Novillo más arriba
+  let novilloY = height * 0.36; 
   let hover = dist(mouseX, mouseY, novilloX, novilloY) < 100;
 
   push();
@@ -633,6 +637,12 @@ function drawAscendingBackgroundClouds(elapsed) {
   }
 
   let speedMultiplier = map(progress, 0, 1, 1.0, 5.5, true);
+  
+  // ¡Aceleración extra del cielo en "Vuela más fuerte"! (progress entre 0.10 y 0.30)
+  if (!explosionTriggered && progress >= 0.10 && progress < 0.30) {
+    speedMultiplier = 3.5;
+  }
+
   let sizeMultiplier = 1.0;
   if (!explosionTriggered && progress >= 0.32 && progress < 0.52) {
     speedMultiplier = 4.2;
@@ -687,8 +697,8 @@ function drawInteractiveWings(px, py, openness) {
 
   imageMode(CENTER);
 
-  let targetAlphaOpen = map(openness, 0.25, 0.55, 0, 255, true);
-  alasAlpha = lerp(alasAlpha, targetAlphaOpen, 0.25); 
+  let targetAlphaOpen = map(openness, 0.15, 0.45, 0, 255, true);
+  alasAlpha = lerp(alasAlpha, targetAlphaOpen, 0.3); 
 
   let alphaCerradas = 255 - alasAlpha;
   let alphaAbiertas = alasAlpha;
@@ -699,7 +709,8 @@ function drawInteractiveWings(px, py, openness) {
   }
 
   if (alphaAbiertas > 2) {
-    tint(255, 255, 255, alphaAbiertas);
+    let finalOpenAlpha = map(alphaAbiertas, 0, 255, 100, 255);
+    tint(255, 255, 255, finalOpenAlpha);
     image(alasAbiertasImg, 0, 0, currentW, currentH);
   }
 
@@ -908,7 +919,6 @@ function drawWarningBanner() {
     drawCaesarText("PRISA!", width / 2, height * 0.36, min(width * 0.09, 78), a * 1000);
   } else if (progress >= 0.54 && progress < 0.72) {
     let a = constrain(map(progress, 0.54, 0.59, 0, 1) * map(progress, 0.67, 0.72, 1, 0), 0, 1);
-    // Subido el aviso de aleteo
     drawCaesarText("¿SEGURO DE SEGUIR", width / 2, height * 0.20, min(width * 0.065, 54), a * 1000);
     drawCaesarText("ALETEANDO?", width / 2, height * 0.36, min(width * 0.065, 54), a * 1000);
   } else if (progress >= 0.74 && progress < 0.86) {
@@ -959,7 +969,6 @@ function triggerAndDropExplosion() {
     explosionFlash = lerp(explosionFlash, 0, 0.09);
   }
 
-  // CAÍDA DIAGONAL: De Arriba-Derecha a Abajo-Izquierda
   if (icaroCayendoImg && icaroCayendoImg.width > 0 && epilogueElapsed < 12000) {
     push();
     imageMode(CENTER);
@@ -993,7 +1002,6 @@ function triggerAndDropExplosion() {
   if (epilogueElapsed >= 14000 && epilogueElapsed < 22000) {
     let a = constrain(map(epilogueElapsed, 14000, 15200, 0, 1) * map(epilogueElapsed, 20800, 22000, 1, 0), 0, 1);
     
-    // "Es hora de descansar" más angosto y subido
     drawCaesarText("DEJA TUS ALAS,", width / 2, height * 0.12, min(width * 0.055, 48), a * 1000);
     drawCaesarText("ES HORA DE DESCANSAR...", width / 2, height * 0.28, min(width * 0.045, 40), a * 1000);
   }
@@ -1003,16 +1011,13 @@ function triggerAndDropExplosion() {
     drawBurningFeatherDecor(width * 0.22, height * 0.65, 1, a * 255);
     drawBurningFeatherDecor(width * 0.78, height * 0.65, -1, a * 255);
     
-    // Título final subido
     drawCaesarText("EL MITO", width / 2, height * 0.16, min(width * 0.11, 95), a * 1000);
     drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.33, min(width * 0.055, 48), a * 1000);
     
-    // Tres plumas abajo del título final, curvadas hacia abajo en forma de U invertida (∩)
     drawInvertedArchFeathers(width / 2, height * 0.44, a * 255);
   }
 }
 
-// Función auxiliar para dibujar las 3 plumas como U invertida (curvadas hacia abajo, una al lado de la otra)
 function drawInvertedArchFeathers(centerX, centerY, alphaVal) {
   if (!featherImg || featherImg.width === 0) return;
   push();
@@ -1022,10 +1027,6 @@ function drawInvertedArchFeathers(centerX, centerY, alphaVal) {
   let pHeight = pWidth * (featherImg.height / featherImg.width);
   let spacing = pWidth * 0.85;
 
-  // Configuramos las rotaciones y desplazamientos para formar la U invertida (∩)
-  // Izquierda: rotada hacia la izquierda y apuntando abajo
-  // Centro: vertical y apuntando abajo
-  // Derecha: rotada hacia la derecha y apuntando abajo
   let offsets = [
     { x: -spacing, y: 12, rot: -0.45 },
     { x: 0,        y: 0,  rot: 0.0 },
