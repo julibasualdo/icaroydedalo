@@ -1,5 +1,5 @@
 // ============================================================================
-// Sketch Principal: El Mito de Ícaro y Dédalo (Restaurado sin atajos, novillo chico y caída diagonal)
+// Sketch Principal: El Mito de Ícaro y Dédalo (Alas chicas, apertura mejorada y texto inicial más alto)
 // ============================================================================
 
 let video = null;
@@ -262,12 +262,13 @@ function draw() {
         let wristsDist = dist(leftWrist.x, leftWrist.y, rightWrist.x, rightWrist.y);
         let shoulderDist = dist(leftShoulder.x, leftShoulder.y, rightShoulder.x, rightShoulder.y);
 
-        targetWing = map(wristsDist, shoulderDist * 0.80, shoulderDist * 2.2, 0, 1, true);
+        // Mapeo ajustado para mayor sensibilidad de apertura
+        targetWing = map(wristsDist, shoulderDist * 0.7, shoulderDist * 1.6, 0, 1, true);
       }
     }
 
-    wingOpenness = lerp(wingOpenness, targetWing, 0.15); 
-    visualWingAnim = lerp(visualWingAnim, wingOpenness, 0.22); 
+    wingOpenness = lerp(wingOpenness, targetWing, 0.2); 
+    visualWingAnim = lerp(visualWingAnim, wingOpenness, 0.25); 
     flapStrength = wingOpenness * 12;
 
     let wingDelta = abs(wingOpenness - lastWingOpenness);
@@ -384,7 +385,7 @@ function draw() {
   drawInactivityWarning(); 
 
   if (progress >= 0.88) {
-    triggerAndDrawExplosion();
+    triggerAndDropExplosion();
   }
 }
 
@@ -400,8 +401,9 @@ function drawStartScreen() {
   }
   pop();
 
-  drawCaesarText("DALE LAS ÚLTIMAS PUNTADAS", width / 2, height * 0.18, min(width * 0.055, 48), 1000);
-  drawCaesarText("A TUS ALAS PARA COMENZAR", width / 2, height * 0.29, min(width * 0.055, 48), 1000);
+  // TEXTOS INICIALES MÁS ARRIBA (10% y 18% de la altura)
+  drawCaesarText("DALE LAS ÚLTIMAS PUNTADAS", width / 2, height * 0.10, min(width * 0.05, 44), 1000);
+  drawCaesarText("A TUS ALAS PARA COMENZAR", width / 2, height * 0.18, min(width * 0.05, 44), 1000);
 
   let novilloX = width / 2;
   let novilloY = height * 0.52;
@@ -676,7 +678,8 @@ function drawInteractiveWings(px, py, openness) {
   drawingContext.imageSmoothingEnabled = true;
   drawingContext.imageSmoothingQuality = 'high';
 
-  let baseW = min(width * 0.75, 900);
+  // ALAS MÁS CHICAS (Reducido de 0.75 a 0.55)
+  let baseW = min(width * 0.55, 680);
   let currentW = lerp(baseW * 0.85, baseW * 1.35, openness);
   let closedH = currentW * (alasCerradasImg.height / alasCerradasImg.width);
   let openH = currentW * (alasAbiertasImg.height / alasAbiertasImg.width);
