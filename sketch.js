@@ -1,5 +1,5 @@
 // ============================================================================
-// Sketch Principal: El Mito de Ícaro y Dédalo (Alas chicas, apertura mejorada y texto inicial más alto)
+// Sketch Principal: El Mito de Ícaro y Dédalo (Título chico y nube central angosta)
 // ============================================================================
 
 let video = null;
@@ -262,7 +262,6 @@ function draw() {
         let wristsDist = dist(leftWrist.x, leftWrist.y, rightWrist.x, rightWrist.y);
         let shoulderDist = dist(leftShoulder.x, leftShoulder.y, rightShoulder.x, rightShoulder.y);
 
-        // Mapeo ajustado para mayor sensibilidad de apertura
         targetWing = map(wristsDist, shoulderDist * 0.7, shoulderDist * 1.6, 0, 1, true);
       }
     }
@@ -310,10 +309,10 @@ function draw() {
   drawTopExtraCloud(elapsed); 
   drawLeftCloud(elapsed);     
 
-  // 2. TEXTOS INICIALES DEL MITO
+  // 2. TEXTOS INICIALES DEL MITO (Título secundario "DE ÍCARO Y DÉDALO" más chico)
   if (elapsed >= 0 && elapsed < STORY_DURATION) {
     drawCaesarText("EL MITO", width / 2, height * 0.22, min(width * 0.11, 95), elapsed);
-    drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.42, min(width * 0.08, 68), elapsed);
+    drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.42, min(width * 0.055, 48), elapsed);
   }
 
   if (personajeImg && personajeImg.width > 0 && elapsed > FLIGHT_START && !explosionTriggered) {
@@ -401,7 +400,6 @@ function drawStartScreen() {
   }
   pop();
 
-  // TEXTOS INICIALES MÁS ARRIBA (10% y 18% de la altura)
   drawCaesarText("DALE LAS ÚLTIMAS PUNTADAS", width / 2, height * 0.10, min(width * 0.05, 44), 1000);
   drawCaesarText("A TUS ALAS PARA COMENZAR", width / 2, height * 0.18, min(width * 0.05, 44), 1000);
 
@@ -505,7 +503,8 @@ function drawCenteredSingleCloud(elapsed) {
   push();
   let cx = width / 2;
   let cy = height * 0.46; 
-  let cW = min(width * 0.90, 1250);
+  // NUBE PRINCIPAL FIJA MÁS ANGOSTA (Reducido de 0.90 a 0.65)
+  let cW = min(width * 0.65, 900);
   let cH = min(height * 0.58, 560);
 
   if (nubeImg && nubeImg.width > 0) {
@@ -678,7 +677,6 @@ function drawInteractiveWings(px, py, openness) {
   drawingContext.imageSmoothingEnabled = true;
   drawingContext.imageSmoothingQuality = 'high';
 
-  // ALAS MÁS CHICAS (Reducido de 0.75 a 0.55)
   let baseW = min(width * 0.55, 680);
   let currentW = lerp(baseW * 0.85, baseW * 1.35, openness);
   let closedH = currentW * (alasCerradasImg.height / alasCerradasImg.width);
@@ -1004,7 +1002,7 @@ function triggerAndDropExplosion() {
     drawBurningFeatherDecor(width * 0.22, height * 0.65, 1, a * 255);
     drawBurningFeatherDecor(width * 0.78, height * 0.65, -1, a * 255);
     drawCaesarText("EL MITO", width / 2, height * 0.22, min(width * 0.11, 95), a * 1000);
-    drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.42, min(width * 0.08, 68), a * 1000);
+    drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.42, min(width * 0.055, 48), a * 1000);
   }
 }
 
