@@ -96,8 +96,8 @@ function preload() {
 }
 
 function setup() {
-  let canvas = createCanvas(windowWidth, windowHeight);
-  canvas.parent('canvas-container'); // Si usas un contenedor, o déjalo suelto
+  // CORREGIDO: Crea el lienzo directamente a tamaño de ventana sin buscar contenedor nulo
+  createCanvas(windowWidth, windowHeight);
   pixelDensity(1);
   frameRate(60);
 
@@ -1306,7 +1306,6 @@ function getPoint(index) {
   };
 }
 
-// ESTA FUNCIÓN RECUPERA AUTOMÁTICAMENTE EL TAMAÑO SI MUEVES LA VENTANA
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
