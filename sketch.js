@@ -96,8 +96,8 @@ function preload() {
 }
 
 function setup() {
-  // CORREGIDO: Crea el lienzo directamente a tamaño de ventana sin buscar contenedor nulo
-  createCanvas(windowWidth, windowHeight);
+  let cnv = createCanvas(windowWidth, windowHeight);
+  cnv.parent(document.body); // CORREGIDO: Fuerza el montaje directo en el body sin buscar contenedores ajenos
   pixelDensity(1);
   frameRate(60);
 
