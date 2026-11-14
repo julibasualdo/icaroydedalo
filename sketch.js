@@ -96,7 +96,8 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  let canvas = createCanvas(windowWidth, windowHeight);
+  canvas.parent('canvas-container'); // Si usas un contenedor, o déjalo suelto
   pixelDensity(1);
   frameRate(60);
 
@@ -303,14 +304,12 @@ function draw() {
     lastAudioUpdate = millis();
   }
 
-  // 1. Fondo y nubes
   drawAtmosphere(elapsed);
   drawAscendingBackgroundClouds(elapsed); 
   drawCenteredSingleCloud(elapsed);
   drawTopExtraCloud(elapsed); 
-  drawLeftCloud(elapsed);     
+  drawLeftCloud(elapsed);      
 
-  // 2. TEXTOS INICIALES DEL MITO
   if (elapsed >= 0 && elapsed < STORY_DURATION) {
     drawCaesarText("EL MITO", width / 2, height * 0.18, min(width * 0.11, 95), elapsed);
     drawCaesarText("DE ÍCARO Y DÉDALO", width / 2, height * 0.35, min(width * 0.055, 48), elapsed);
@@ -375,14 +374,9 @@ function draw() {
   }
 
   updateFloatingLeaves();
-
-  // 3. Cintas orgánicas laterales y franja negra INFERIOR 100% OPACA (90px)
   drawSolidBlackRibbonsAndBottomBar();
-
-  // 4. Plumas cayendo
   updateFeathersOnTop();
 
-  // 5. Carteles posteriores y epílogo
   drawPromptMessage(elapsed);
   drawWarningBanner(); 
   drawInactivityWarning(); 
@@ -937,12 +931,10 @@ function triggerAndDropExplosion() {
 
   let epilogueElapsed = millis() - epilogueStartTime;
 
-  // --- DISPARO AUTOMÁTICO A RESOLUME VÍA PUENTE OSC (LOCAL) ---
   if (!resolumeSenalEnviada) {
     resolumeSenalEnviada = true;
     enviarSenalAResolume(); 
     
-    // Recarga la página web a los 6 segundos para reiniciar la experiencia de la muestra
     setTimeout(() => {
       window.location.reload(); 
     }, 6000);
@@ -1028,9 +1020,6 @@ function triggerAndDropExplosion() {
   }
 }
 
-// =========================================================
-// FUNCIÓN PARA COMUNICARSE CON EL PUENTE OSC DE RESOLUME
-// =========================================================
 function enviarSenalAResolume() {
   fetch('http://localhost:8080/disparar-mapping', {
     method: 'POST'
@@ -1065,10 +1054,6 @@ function drawInvertedArchFeathers(centerX, centerY, alphaVal) {
     pop();
   }
   pop();
-}
-
-function triggerAndDrawExplosion() {
-  triggerAndDropExplosion();
 }
 
 function drawAtmosphere(elapsed) {
@@ -1321,6 +1306,7 @@ function getPoint(index) {
   };
 }
 
+// ESTA FUNCIÓN RECUPERA AUTOMÁTICAMENTE EL TAMAÑO SI MUEVES LA VENTANA
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
