@@ -1,5 +1,5 @@
 // ============================================================================
-// Sketch Principal: El Mito de Ícaro y Dédalo (Con Automatización OSC para Resolume)
+// Sketch Principal: El Mito de Ícaro y Dédalo (Con Intro Sincronizada y OSC)
 // ============================================================================
 
 let video = null;
@@ -25,7 +25,9 @@ let alasAbiertasImg = null;
 let icaroCayendoImg = null; 
 let novilloImg = null; 
 
-// Control de inicio y estado
+// Control de inicio, sincronización de intro y estado
+let introTerminada = false;
+let tiempoDeEsperaTorre = 22000; // 22 segundos para dar tiempo a que luzca la torre de Resolume antes de activar la web
 let gameStarted = false;
 let resolumeSenalEnviada = false; // Bandera para disparar Resolume una sola vez al terminar
 
@@ -97,7 +99,7 @@ function preload() {
 
 function setup() {
   let cnv = createCanvas(windowWidth, windowHeight);
-  cnv.parent(document.body); // CORREGIDO: Fuerza el montaje directo en el body sin buscar contenedores ajenos
+  cnv.parent(document.body); // Fuerza el montaje directo en el body limpio
   pixelDensity(1);
   frameRate(60);
 
@@ -105,7 +107,7 @@ function setup() {
   try {
     sndAmbiente = loadSound('1AMBIENTE.mp3');
     sndAleteo   = loadSound('2ALETEO.mp3');
-    sndViento   = loadSound('viento.mp3');
+    sndViento   = loadSound('3VIENTO 4.mp3'); // Ajustado al nombre real en tu repositorio
     sndFuego    = loadSound('3FUEGO.mp3');
     sndFuego2   = loadSound('FUEGO2.mp3');
     sndFinal    = loadSound('4FINAL.mp3');
@@ -184,6 +186,7 @@ function setup() {
 }
 
 function mousePressed() {
+  if (!introTerminada) return; // Si aún está corriendo la intro de la torre, el mouse no hace nada en la web
   userStartAudio();
 
   if (!gameStarted) {
@@ -234,6 +237,16 @@ function resumeCurrentSounds() {
 }
 
 function draw() {
+  // Sincronización de Intro: Durante los primeros segundos, la web no dibuja nada para dejar ver solo la torre de Resolume
+  if (!introTerminada) {
+    if (millis() > tiempoDeEsperaTorre) {
+      introTerminada = true;
+    } else {
+      clear(); // Fondo transparente/limpio para ver el proyector por detrás
+      return;
+    }
+  }
+
   if (!gameStarted) {
     drawStartScreen();
     return;
@@ -936,7 +949,7 @@ function triggerAndDropExplosion() {
     enviarSenalAResolume(); 
     
     setTimeout(() => {
-      window.location.reload(); 
+      window.location.reload(); // Recarga la página y vuelve a la espera de la intro de Resolume
     }, 6000);
   }
 
