@@ -2,6 +2,17 @@
 // Sketch Principal: El Mito de Ícaro y Dédalo (Optimizado para Fluidez)
 // ============================================================================
 
+let ws;
+try {
+  ws = new WebSocket("ws://localhost:8080");
+} catch (e) { ws = null; }
+
+function avisar(evento) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ evento }));
+  }
+}
+
 let video = null;
 let pose = null;
 let cameraInstance = null;
@@ -960,6 +971,7 @@ function triggerAndDropExplosion() {
 
   if (!resolumeSenalEnviada) {
     resolumeSenalEnviada = true;
+    avisar("juego_terminado");
     enviarSenalAResolume(); 
     
     setTimeout(() => {
