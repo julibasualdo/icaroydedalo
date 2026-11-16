@@ -1,5 +1,5 @@
 // ============================================================================
-// Sketch Principal: El Mito de Ícaro y Dédalo (Con Intro Sincronizada y OSC)
+// Sketch Principal: El Mito de Ícaro y Dédalo (Optimizado para Fluidez)
 // ============================================================================
 
 let video = null;
@@ -11,11 +11,11 @@ let floatingLeaves = [];
 let seagulls = [];
 let bgClouds = []; 
 let cloudSparkles = []; 
-let airLines = [];         
+let airLines = [];          
 let characterAirLines = []; 
 let novilloSparkles = []; 
 
-// Variables de imágenes de alas, elementos y novillo
+// Variables de imágenes de alas, elementos y ovillo
 let featherImg = null;
 let nubeImg = null;      
 let leavesImg = null;
@@ -25,11 +25,9 @@ let alasAbiertasImg = null;
 let icaroCayendoImg = null; 
 let novilloImg = null; 
 
-// Control de inicio, sincronización de intro y estado
-let introTerminada = false;
-let tiempoDeEsperaTorre = 22000; // 22 segundos para dar tiempo a que luzca la torre de Resolume antes de activar la web
+// Control de inicio y estado
 let gameStarted = false;
-let resolumeSenalEnviada = false; // Bandera para disparar Resolume una sola vez al terminar
+let resolumeSenalEnviada = false;
 
 // Control de audios
 let sndAmbiente = null;
@@ -58,16 +56,19 @@ let totalPausedDuration = 0;
 
 // Temporización y vuelo
 let startTime = 0;
-const STORY_DURATION = 12000;      
-const TRANSITION_DURATION = 2500;  
+const STORY_DURATION = 5500;       // 5.5s para el título "El Mito de Ícaro y Dédalo"
+const TRANSITION_DURATION = 2000;  // 2s para "¡Es hora de volar!"
 const FLIGHT_START = STORY_DURATION + TRANSITION_DURATION; 
+const FLIGHT_GRACE_PERIOD = 4500;
 
 let interactiveProgress = 0.0;
 let progress = 0.0;
 
 let cameraStarted = false;
 let cameraShutDown = false;
-let frameCounter = 0; 
+let isProcessingPose = false;
+let lastPoseSendTime = 0;
+const POSE_INTERVAL_MS = 40;
 let lastAudioUpdate = 0;
 
 // Aleteo, tracking y control de inactividad
@@ -77,6 +78,7 @@ let lastWingOpenness = 0.0;
 let alasAlpha = 0.0; 
 let flapStrength = 0;
 let noFlapTimer = 0;
+const INACTIVITY_LIMIT = 2800;
 
 let lightningFlash = 0;
 let currentLightning = null;
@@ -99,7 +101,7 @@ function preload() {
 
 function setup() {
   let cnv = createCanvas(windowWidth, windowHeight);
-  cnv.parent(document.body); // Fuerza el montaje directo en el body limpio
+  cnv.parent(document.body);
   pixelDensity(1);
   frameRate(60);
 
@@ -107,7 +109,7 @@ function setup() {
   try {
     sndAmbiente = loadSound('1AMBIENTE.mp3');
     sndAleteo   = loadSound('2ALETEO.mp3');
-    sndViento   = loadSound('3VIENTO 4.mp3'); // Ajustado al nombre real en tu repositorio
+    sndViento   = loadSound('3VIENTO 4.mp3');
     sndFuego    = loadSound('3FUEGO.mp3');
     sndFuego2   = loadSound('FUEGO2.mp3');
     sndFinal    = loadSound('4FINAL.mp3');
@@ -186,7 +188,6 @@ function setup() {
 }
 
 function mousePressed() {
-  if (!introTerminada) return; // Si aún está corriendo la intro de la torre, el mouse no hace nada en la web
   userStartAudio();
 
   if (!gameStarted) {
@@ -237,16 +238,6 @@ function resumeCurrentSounds() {
 }
 
 function draw() {
-  // Sincronización de Intro: Durante los primeros segundos, la web no dibuja nada para dejar ver solo la torre de Resolume
-  if (!introTerminada) {
-    if (millis() > tiempoDeEsperaTorre) {
-      introTerminada = true;
-    } else {
-      clear(); // Fondo transparente/limpio para ver el proyector por detrás
-      return;
-    }
-  }
-
   if (!gameStarted) {
     drawStartScreen();
     return;
@@ -264,34 +255,44 @@ function draw() {
       startCameraTracking();
     }
     
-    frameCounter++;
     let targetWing = 0.0;
 
-    if (poses.length > 0 && frameCounter % 2 === 0) {
-      let leftWrist = getPoint(15);
-      let rightWrist = getPoint(16);
-      let leftShoulder = getPoint(11);
-      let rightShoulder = getPoint(12);
+    if (poses.length > 0) {
+      let leftWrist = poses[15];
+      let rightWrist = poses[16];
+      let leftShoulder = poses[11];
+      let rightShoulder = poses[12];
 
       if (leftWrist && rightWrist && leftShoulder && rightShoulder) {
-        let wristsDist = dist(leftWrist.x, leftWrist.y, rightWrist.x, rightWrist.y);
-        let shoulderDist = dist(leftShoulder.x, leftShoulder.y, rightShoulder.x, rightShoulder.y);
+        // 1. Apertura horizontal entre muñecas vs ancho de hombros
+        let wristsDistX = Math.abs(leftWrist.x - rightWrist.x);
+        let shoulderDistX = Math.abs(leftShoulder.x - rightShoulder.x);
 
-        targetWing = map(wristsDist, shoulderDist * 0.7, shoulderDist * 1.6, 0, 1, true);
+        // 2. Altura vertical de las muñecas respecto a los hombros (en imagen, Y crece hacia abajo)
+        let avgShoulderY = (leftShoulder.y + rightShoulder.y) * 0.5;
+        let avgWristY = (leftWrist.y + rightWrist.y) * 0.5;
+        let liftNormalized = (avgShoulderY - avgWristY) / Math.max(shoulderDistX, 0.05);
+
+        if (shoulderDistX > 0.01) {
+          let spreadFactor = map(wristsDistX, shoulderDistX * 0.95, shoulderDistX * 2.1, 0, 1, true);
+          // Cuando las muñecas bajan (liftNormalized < -0.35), el factor cae a 0 y cierra las alas
+          let liftFactor = map(liftNormalized, -0.45, 0.35, 0, 1, true);
+          targetWing = spreadFactor * liftFactor;
+        }
       }
     }
 
-    wingOpenness = lerp(wingOpenness, targetWing, 0.2); 
-    visualWingAnim = lerp(visualWingAnim, wingOpenness, 0.25); 
+    wingOpenness = lerp(wingOpenness, targetWing, 0.35); 
+    visualWingAnim = lerp(visualWingAnim, wingOpenness, 0.38); 
     flapStrength = wingOpenness * 12;
 
     let wingDelta = abs(wingOpenness - lastWingOpenness);
     lastWingOpenness = wingOpenness;
 
-    if (wingOpenness > 0.15 && wingDelta > 0.002) {
-      interactiveProgress += map(wingOpenness, 0.15, 1.0, 0.0008, 0.0025, true);
+    if (wingOpenness > 0.08 && wingDelta > 0.003) {
+      interactiveProgress += map(wingOpenness, 0.08, 1.0, 0.001, 0.0028, true);
       noFlapTimer = 0; 
-    } else {
+    } else if (elapsed > FLIGHT_START + FLIGHT_GRACE_PERIOD) {
       noFlapTimer += deltaTime; 
     }
 
@@ -339,7 +340,7 @@ function draw() {
       speedMultLines = 3.8;
     }
     if (!explosionTriggered && progress >= 0.32 && progress < 0.52) speedMultLines = 3.5;
-    if (noFlapTimer > 1800 && elapsed > FLIGHT_START) speedMultLines = 0;
+    if (noFlapTimer > INACTIVITY_LIMIT && elapsed > FLIGHT_START) speedMultLines = 0;
 
     for (let cl of characterAirLines) {
       cl.y += (cl.speed * speedMultLines); 
@@ -368,7 +369,7 @@ function draw() {
     drawSeagulls();
   }
 
-  if (elapsed > 2000 && !lightningTriggered) {
+  if (elapsed > 1000 && !lightningTriggered) {
     triggerLightning();
     lightningTriggered = true;
     if (thunderEnv) thunderEnv.play();
@@ -458,10 +459,10 @@ function drawStartScreen() {
   
   ctx.lineWidth = bigTextSize * 0.12;
   ctx.strokeStyle = "rgba(10, 10, 10, 0.95)";
-  ctx.strokeText("Presiona el novillo", width / 2, height * 0.60);
+  ctx.strokeText("Presiona el ovillo", width / 2, height * 0.60);
   
   ctx.fillStyle = `rgba(255, 240, 200, ${alphaPulse / 255})`;
-  ctx.fillText("Presiona el novillo", width / 2, height * 0.60);
+  ctx.fillText("Presiona el ovillo", width / 2, height * 0.60);
   ctx.restore();
   pop();
 }
@@ -658,7 +659,7 @@ function drawAscendingBackgroundClouds(elapsed) {
     sizeMultiplier = 1.5;
   }
 
-  if (noFlapTimer > 1800 && elapsed > FLIGHT_START && !explosionTriggered) {
+  if (noFlapTimer > INACTIVITY_LIMIT && elapsed > FLIGHT_START && !explosionTriggered) {
     speedMultiplier = 0;
   }
 
@@ -666,7 +667,7 @@ function drawAscendingBackgroundClouds(elapsed) {
   imageMode(CENTER);
   for (let bc of bgClouds) {
     let baseDrift = 1.2 * speedMultiplier;
-    let speedBonus = (wingOpenness > 0.15) ? map(wingOpenness, 0.15, 1.0, 0.5, 4.0, true) * speedMultiplier : 0;
+    let speedBonus = (wingOpenness > 0.08) ? map(wingOpenness, 0.08, 1.0, 0.5, 4.0, true) * speedMultiplier : 0;
     
     bc.y += (bc.speedY * speedMultiplier + baseDrift + speedBonus);
 
@@ -689,9 +690,6 @@ function drawInteractiveWings(px, py, openness) {
   if (!alasCerradasImg || alasCerradasImg.width === 0 || !alasAbiertasImg || alasAbiertasImg.width === 0) return;
 
   push();
-  drawingContext.imageSmoothingEnabled = true;
-  drawingContext.imageSmoothingQuality = 'high';
-
   let baseW = min(width * 0.42, 520);
   let currentW = lerp(baseW * 0.85, baseW * 1.35, openness);
   let closedH = currentW * (alasCerradasImg.height / alasCerradasImg.width);
@@ -703,8 +701,9 @@ function drawInteractiveWings(px, py, openness) {
 
   imageMode(CENTER);
 
-  let targetAlphaOpen = map(openness, 0.15, 0.45, 0, 255, true);
-  alasAlpha = lerp(alasAlpha, targetAlphaOpen, 0.3); 
+  // Transición directa desde openness 0.05 a 0.45 para que cierren del todo al bajar brazos
+  let targetAlphaOpen = map(openness, 0.05, 0.45, 0, 255, true);
+  alasAlpha = lerp(alasAlpha, targetAlphaOpen, 0.4); 
 
   let alphaCerradas = 255 - alasAlpha;
   let alphaAbiertas = alasAlpha;
@@ -715,7 +714,7 @@ function drawInteractiveWings(px, py, openness) {
   }
 
   if (alphaAbiertas > 2) {
-    let finalOpenAlpha = map(alphaAbiertas, 0, 255, 100, 255);
+    let finalOpenAlpha = map(alphaAbiertas, 0, 255, 80, 255);
     tint(255, 255, 255, finalOpenAlpha);
     image(alasAbiertasImg, 0, 0, currentW, currentH);
   }
@@ -725,7 +724,7 @@ function drawInteractiveWings(px, py, openness) {
 
 function drawInactivityWarning() {
   let elapsed = (millis() - totalPausedDuration) - startTime;
-  if (elapsed > FLIGHT_START && !explosionTriggered && noFlapTimer > 1800) {
+  if (elapsed > FLIGHT_START + FLIGHT_GRACE_PERIOD && !explosionTriggered && noFlapTimer > INACTIVITY_LIMIT) {
     drawCaesarText("¡ESTÁS", width / 2, height * 0.16, min(width * 0.08, 65), 500);
     drawCaesarText("DETENIDO!", width / 2, height * 0.36, min(width * 0.08, 65), 500);
   }
@@ -837,8 +836,15 @@ function startCameraTracking() {
   if (cameraStarted) return;
   cameraStarted = true;
 
-  video = createCapture(VIDEO);
-  video.size(320, 240);
+  video = createCapture({
+    video: {
+      width: { ideal: 160 },
+      height: { ideal: 120 },
+      frameRate: { ideal: 30 }
+    },
+    audio: false
+  });
+  video.size(160, 120);
   video.hide();
 
   pose = new Pose({
@@ -846,8 +852,8 @@ function startCameraTracking() {
   });
 
   pose.setOptions({
-    modelComplexity: 0, 
-    smoothLandmarks: true,
+    modelComplexity: 0,
+    smoothLandmarks: false,
     minDetectionConfidence: 0.35,
     minTrackingConfidence: 0.35
   });
@@ -856,14 +862,22 @@ function startCameraTracking() {
 
   cameraInstance = new Camera(video.elt, {
     onFrame: async () => {
-      if (pose && video && video.elt && !cameraShutDown && !isPaused) {
-        try {
-          await pose.send({ image: video.elt });
-        } catch(e) {}
+      if (!pose || !video || !video.elt || cameraShutDown || isPaused) return;
+      
+      let now = performance.now();
+      if (isProcessingPose || (now - lastPoseSendTime < POSE_INTERVAL_MS)) return;
+
+      isProcessingPose = true;
+      lastPoseSendTime = now;
+      try {
+        await pose.send({ image: video.elt });
+      } catch(e) {
+      } finally {
+        isProcessingPose = false;
       }
     },
-    width: 320,
-    height: 240
+    width: 160,
+    height: 120
   });
 
   cameraInstance.start().catch((err) => console.error("Error cámara:", err));
@@ -949,7 +963,7 @@ function triggerAndDropExplosion() {
     enviarSenalAResolume(); 
     
     setTimeout(() => {
-      window.location.reload(); // Recarga la página y vuelve a la espera de la intro de Resolume
+      window.location.reload();
     }, 6000);
   }
 
@@ -1309,14 +1323,6 @@ function updateAndDrawLightning() {
       currentLightning = null;
     }
   }
-}
-
-function getPoint(index) {
-  if (!poses[index]) return null;
-  return {
-    x: width - poses[index].x * width,
-    y: poses[index].y * height
-  };
 }
 
 function windowResized() {
